@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Nemi map builder</title>
+
+    <style>
+        .nemi-canvas {
+            background-color: black;
+        }
+    </style>
+</head>
+<body>
+<canvas id="nemi-canvas" height="771px" width="1024px" class="nemi-canvas" tabindex="1"
+        onmousemove="NEMI.mouseMoved(event)" onclick="NEMI.mouseClicked(event)"
+        onmousedown="NEMI.mouseDown(event)" onmouseup="NEMI.mouseUp(event)" ondragover="NEMI.mouseMoved(event)"
+        onmouseover="NEMI.mouseMoved(event)"
+        draggable="false"
+>
+</canvas>
+<button onclick="NEMI.setActiveNode('MONK');" value="Monk">Monk</button>
+
+
+<script>
+    var nemiMapHandler = function () {
+        var self = this;
+
+        self.layers = {
+            background: new Image(1024, 771),
+            overlay: new Image(1024, 771),
+            paths: new Image(770, 708),
+            nodes: new Image(770, 708),
+            pastedImage: new Image(770, 708)
+        };
+
+        self.nodes = {
+            CHEST: new Image(),
+            FUNGAL: new Image(),
+            FLOWER: new Image(),
+            MUSHROOM: new Image(),
+            ROCK: new Image(),
+            OBELISK: new Image(),
+            EXPLORER: new Image(),
+            MONK: new Image(),
+            POOL: new Image(),
+            PAHTLI: new Image(),
+            TRAITOR: new Image()
+        };
+
+        self.placedNodes = [];
+        self.pathElements = [];
+        self.currentPathElement = [];
+        self.mouseState = '';
+
+        self.activeNodeName = '';
+        self.nodes.CHEST.src = "./img/Node_Chest.PNG";
+        self.nodes.FUNGAL.src = "./img/Node_Fungal.PNG";
+        self.nodes.FLOWER.src = "./img/Node_Flower.PNG";
+        self.nodes.MUSHROOM.src = "./img/Node_Mushroom.PNG";
+        self.nodes.ROCK.src = "./img/Node_Rocks.PNG";
+        self.nodes.OBELISK.src = "./img/Node_Obelisk.PNG";
+        self.nodes.EXPLORER.src = "./img/Node_Explorer.PNG";
+        self.nodes.MONK.src = "./img/Node_Monk.PNG";
+        self.nodes.POOL.src = "./img/Node_Pool.PNG";
+        self.nodes.PAHTLI.src = "./img/Trinks_Pahtli.PNG";
+        self.nodes.TRAITOR.src = "./img/Trinks_Traitor.PNG";
+
+        function nodeImageByName(name) {
+            if (name === 'CHEST') {
+                return self.nodes.CHEST;
+            } else if (name === 'FUNGAL') {
+                return self.nodes.FUNGAL;
+            } else if (name === 'FLOWER') {
+                return self.nodes.FLOWER;
+            } else if (name === 'MUSHROOM') {
+                return self.nodes.MUSHROOM;
+            } else if (name === 'ROCK') {
+                return self.nodes.ROCK;
+            } else if (name === 'OBELISK') {
+                return self.nodes.OBELISK;
+            } else if (name === 'EXPLORER') {
+                return self.nodes.EXPLORER;
+            } else if (name === 'MONK') {
+                return self.nodes.MONK;
+            } else if (name === 'POOL') {
+                return self.nodes.POOL;
+            } else if (name === 'PAHTLI') {
+                return self.nodes.PAHTLI;
+            } else if (name === 'TRAITOR') {
+                return self.nodes.TRAITOR;
+            } else {
+                console.log('unknown image: ' + name);
+            }
+        }
+
+        self.mouseMoved = function (e) {
+            self.mouse = e;
+            if (self.mouseState === 'DOWN') {
+                var x = self.mouse.layerX;
+                var y = self.mouse.layerY;
+                var lastNode = self.currentPathElement[self.currentPathElement.length - 1];
+                var dx = Math.abs(lastNode.x - x);
+                var dy = Math.abs(lastNode.y - y);
+                if (dx > 2 || dy > 2) {
+                    if(dx > 6 || dy > 6){
+                        var max = Math.max(dx, dy);
+                        var it = 1+(max/5);
+
+                        console.log("change > 6, max=" + max + " -> it = " + it);
+                        for(var i=0; i < it; i++) {
+                            var nx = lastNode.x + i*((x - lastNode.x)/it);
+                            var ny = lastNode.y + i*((y - lastNode.y)/it);
+                            self.currentPathElement.push({x: nx, y: ny});
+                        }
+                        self.currentPathElement.push({x: self.mouse.layerX, y: self.mouse.layerY});
+                    } else {
+                        self.currentPathElement.push({x: self.mouse.layerX, y: self.mouse.layerY});
+                    }
+                }
+            }
+
+            self.render();
+        };
+
+        self.nameFromIndex = function(idx) {
+            idx = Math.floor(idx);
+            switch(idx){
+                case 0:
+                    return 'CHEST';
+                case 1:
+                    return 'FUNGAL';
+                case 2:
+                    return 'FLOWER';
+                case 3:
+                    return 'MUSHROOM';
+                case 4:
+                    return 'ROCK';
+                case 5:
+                    return 'OBELISK';
+                case 6:
+                    return 'EXPLORER';
+                case 7:
+                    return 'MONK';
+                case 8:
+                    return 'POOL';
+                case 9:
+                    return 'PAHTLI';
+                case 10:
+                    return 'TRAITOR';
+            }
+            console.log('index? ' + idx);
+        };
+
+        self.mouseClicked = function (event) {
+            self.mouse = event;
+            // 770 708.
+
+            if(self.mouse.layerX >= 708) {
+                var x = self.mouse.layerX;
+                var y = self.mouse.layerY;
+
+                if(x >= 720 && x <= 1000) {
+                    if (y >= 66 && y <= 594) {
+                        var idx = (y - 66) / 60;;
+                        self.setActiveNode(nameFromIndex(idx));
+                    } else if (y >= 650 && y <= 782){
+                        if(y <= 710){
+                            self.setActiveNode('PAHTLI');
+                        }else{
+                            self.setActiveNode('TRAITOR');
+                        }
+                    } else {
+                        self.setActiveNode('');
+                    }
+                }
+            }else {
+                // placing an node.
+                if (self.activeNodeName !== '' && self.mouse !== undefined) {
+                    var oldNodeName = self.activeNodeName;
+                    var image = nodeImageByName(self.activeNodeName);
+                    self.activeNodeName = '';
+                    if (image != null && image !== undefined) {
+                        var obj = {
+                            nodeName: oldNodeName,
+                            image: image,
+                            x: self.mouse.layerX,
+                            y: self.mouse.layerY
+                        };
+                        self.placedNodes.push(obj);
+                    }
+                    self.render();
+                }
+            }
+        };
+
+        self.mouseDown = function () {
+            console.log('down');
+            self.mouseState = 'DOWN';
+            self.currentPathElement = [];
+            self.currentPathElement.push({x: self.mouse.layerX, y: self.mouse.layerY});
+
+        };
+
+        self.mouseUp = function () {
+            console.log('up');
+            self.mouseState = 'UP';
+            if (self.currentPathElement.length > 2) {
+                self.pathElements.push(self.currentPathElement);
+                console.log('add section');
+            }
+            self.currentPathElement = [];
+            self.render();
+        };
+
+        self.renderPastedImage = function (canvas, ctx) {
+            var PASTE_WIDTH = (708 - 2);
+            var PASTE_HEIGHT = (770 - 2);
+            var widthFactor = PASTE_WIDTH / self.layers.pastedImage.width;
+            var heightFactor = PASTE_HEIGHT / self.layers.pastedImage.height;
+            var minFactor = (widthFactor < heightFactor) ? widthFactor : heightFactor;
+
+            var renderWidth = minFactor * self.layers.pastedImage.width;
+            var renderHeight = minFactor * self.layers.pastedImage.height;
+            var deltaWidth = (PASTE_WIDTH - renderWidth) / 2;
+            var deltaHeight = (PASTE_HEIGHT - renderHeight) / 2;
+
+            ctx.drawImage(self.layers.pastedImage, 0, 0, self.layers.pastedImage.width, self.layers.pastedImage.height, 1 + deltaWidth, 1 + deltaHeight, renderWidth, renderHeight);
+        };
+
+        self.renderOverlay = function (canvas, ctx) {
+            ctx.drawImage(self.layers.overlay, 0, 0);
+        };
+
+        self.renderBackground = function (canvas, ctx) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(self.layers.background, 0, 0);
+        };
+
+        self.renderCursor = function (canvas, ctx) {
+            if (self.activeNodeName !== '' && self.mouse !== undefined) {
+                var img = nodeImageByName(self.activeNodeName);
+                var x = self.mouse.layerX;
+                var y = self.mouse.layerY;
+
+                ctx.drawImage(img, 0, 0, img.width, img.height, x - img.width / 2, y - img.height / 2, img.width, img.height);
+            }
+        };
+
+        self.renderPlacedNodes = function (canvas, ctx) {
+            for (var i = 0; i < self.placedNodes.length; i++) {
+                var node = self.placedNodes[i];
+                var img = node.image;
+                var x = node.x;
+                var y = node.y;
+
+                ctx.drawImage(img, 0, 0, img.width, img.height, x - img.width / 2, y - img.height / 2, img.width, img.height);
+            }
+        };
+
+        self.drawTrail = function (canvas, ctx, e) {
+            // ctx.strokeStyle = "#E0E0E0";
+            ctx.fillStyle = "#E0E0E0";
+            for (var i = 0; i < e.length; i++) {
+                ctx.fillRect(e[i].x - 5, e[i].y - 5, 11, 11);
+                // ctx.fillRect(0,0,1000,1000);
+                console.log(e[i].x + "," + e[i].y)
+            }
+        };
+
+        self.drawPaths = function (canvas, ctx) {
+            for (var i = 0; i < self.pathElements.length; i++) {
+                console.log("section " + i);
+                self.drawTrail(canvas, ctx, self.pathElements[i]);
+            }
+        };
+
+        self.doRender = function () {
+            var canvas = document.getElementById("nemi-canvas");
+            var ctx = canvas.getContext("2d");
+            self.renderBackground(canvas,ctx);
+            self.renderPastedImage(canvas,ctx);
+            self.drawTrail(canvas, ctx, self.currentPathElement);
+            self.drawPaths(canvas, ctx);
+            self.renderPlacedNodes(canvas,ctx);
+            self.renderOverlay(canvas,ctx);
+            self.renderCursor(canvas,ctx);
+        };
+
+        self.needReRender = false;
+
+        self.render = function() {
+            self.needReRender = true;
+        };
+
+        self.checkRender = function() {
+            if(self.needReRender) {
+                self.needReRender = false;
+                self.doRender();
+            }
+        };
+
+        setInterval(function(){self.checkRender();}, 20);
+
+
+        self.setupCopyPaste = function () {
+            document.addEventListener('paste', function (e) {
+                self.handlePaste(e);
+            }, false);
+        };
+
+        self.handlePaste = function (e) {
+            if (e.clipboardData) {
+                var items = e.clipboardData.items;
+                if (!items) return;
+                for (var i = 0; i < items.length; i++) {
+                    if (items[i].type.indexOf("image") !== -1) {
+                        var blob = items[i].getAsFile();
+                        var URLObj = window.URL || window.webkitURL;
+                        var source = URLObj.createObjectURL(blob);
+
+                        var newImage = new Image();
+                        newImage.onload = function () {
+                            self.render();
+                        };
+                        self.layers.pastedImage = newImage;
+                        newImage.src = source;
+                        e.preventDefault();
+                    }
+                }
+            }
+        };
+        self.setupCopyPaste();
+
+        // setup mouse listener
+
+
+        self.layers.background.onload = function () {
+            self.render();
+        };
+        self.layers.overlay.onload = function () {
+            self.render();
+        };
+        self.layers.paths.onload = function () {
+            self.render();
+        };
+        self.layers.nodes.onload = function () {
+            self.render();
+        };
+        self.nodes.CHEST.onload = function () {
+            self.render();
+        };
+        self.nodes.FUNGAL.onload = function () {
+            self.render();
+        };
+        self.nodes.FLOWER.onload = function () {
+            self.render();
+        };
+        self.nodes.MUSHROOM.onload = function () {
+            self.render();
+        };
+        self.nodes.ROCK.onload = function () {
+            self.render();
+        };
+        self.nodes.OBELISK.onload = function () {
+            self.render();
+        };
+        self.nodes.EXPLORER.onload = function () {
+            self.render();
+        };
+        self.nodes.MONK.onload = function () {
+            self.render();
+        };
+        self.nodes.POOL.onload = function () {
+            self.render();
+        };
+        self.nodes.PAHTLI.onload = function () {
+            self.render();
+        };
+        self.nodes.TRAITOR.onload = function () {
+            self.render();
+        };
+
+        self.layers.background.src = "./img/Background.PNG";
+        self.layers.overlay.src = "./img/Legend_Overlay.PNG";
+
+        self.setActiveNode = function (nodeName) {
+            // console.log(nodeName);
+            self.activeNodeName = nodeName;
+            self.render();
+        };
+
+        return self;
+    };
+    var NEMI = nemiMapHandler();
+</script>
+
+<!--
+TODO: upload?
+TODO: delete?
+TODO: add text?
+TODO: undo support?
+-->
+</body>
+</html>
